@@ -3,3 +3,4 @@ node_modules/
 
 # Ignore nested node_modules directories
 **/node_modules/
+package-lock.json

@@ -22,7 +22,7 @@ const registerUser = async (req, res) => {
             password: hashedPassword,
         });
 
-        if (!user) throw Error('User could not created.')
+        if (!user) throw Error(ErrorPhrase.USER_COULD_NOT_CREATED);
 
         const { accessToken, refreshToken, accessTokenExpiry, refreshTokenExpiry } = generateTokens(user.id);
 
@@ -50,19 +50,25 @@ const registerUser = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
-            status: StatusDescription.INTERNAL_SERVER_ERROR,
-            statusCode: StatusCode.INTERNAL_SERVER_ERROR,
-            message: errorHandler(error),
-        }));
+        if (error.name && error.name === 'SequelizeUniqueConstraintError') {
+            res.status(StatusCode.CONFLICT).send(createErrorPayload({
+                status: StatusDescription.CONFLICT,
+                statusCode: StatusCode.CONFLICT,
+                message: errorHandler(error),
+            }));
+        } else {
+            res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
+                status: StatusDescription.INTERNAL_SERVER_ERROR,
+                statusCode: StatusCode.INTERNAL_SERVER_ERROR,
+                message: errorHandler(error),
+            }));
+        }
     }
 
 }
 
 const getUsers = async (_req, res) => {
     try {
-
-        // const users = await User.findAll({ include: [{ model: Order, required: false }], });
         const users = await User.findAll();
 
         res.status(StatusCode.OK).send({
@@ -89,12 +95,12 @@ const userLogin = async (req, res) => {
 
 
         if (!user) {
-            res.status(StatusCode.NOT_FOUND).send(createErrorPayload({
-                status: StatusDescription.NOT_FOUND,
-                statusCode: StatusCode.NOT_FOUND,
-                message: ErrorPhrase.USER_NOT_FOUND,
-            }));
+            throw Error(ErrorPhrase.USER_NOT_FOUND);
         } else {
+
+            const isMatched = await bcrypt.compare(password, user.password);
+            if (!isMatched) throw Error(ErrorPhrase.INVALID_CREDENTIALS);
+
             const existingToken = await Token.findOne({ where: { userId: user.id } });
 
             const response = {
@@ -136,21 +142,11 @@ const userLogin = async (req, res) => {
                 });
             }
 
-            const isMatched = await bcrypt.compare(password, user.password);
-
-            if (!isMatched) {
-                res.status(StatusCode.UNAUTHORIZED).send(createErrorPayload({
-                    status: StatusDescription.UNAUTHORIZED,
-                    statusCode: StatusCode.UNAUTHORIZED,
-                    message: ErrorPhrase.INVALID_CREDENTIALS,
-                }));
-            } else {
-                res.status(StatusCode.OK).send({
-                    status: StatusDescription.SUCCESS,
-                    statusCode: StatusCode.OK,
-                    data: response,
-                });
-            }
+            res.status(StatusCode.OK).send({
+                status: StatusDescription.SUCCESS,
+                statusCode: StatusCode.OK,
+                data: response,
+            });
         }
 
     } catch (error) {
@@ -177,11 +173,7 @@ const userPasswordReset = async (req, res) => {
         const user = await User.findByPk(decoded.userId);
 
         if (!user) {
-            res.status(StatusCode.NOT_FOUND).send(createErrorPayload({
-                status: StatusDescription.NOT_FOUND,
-                statusCode: StatusCode.NOT_FOUND,
-                message: ErrorPhrase.USER_NOT_FOUND,
-            }));
+            throw Error(ErrorPhrase.USER_NOT_FOUND)
         } else {
             const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -215,11 +207,15 @@ const getOrdersOfUsers = async (req, res) => {
             },
         });
 
-        res.status(StatusCode.OK).send({
-            status: StatusDescription.SUCCESS,
-            statusCode: StatusCode.OK,
-            data: user,
-        });
+        if (user.orders.length === 0) {
+            throw Error(ErrorPhrase.NO_ORDERS)
+        } else {
+            res.status(StatusCode.OK).send({
+                status: StatusDescription.SUCCESS,
+                statusCode: StatusCode.OK,
+                data: user,
+            });
+        }
 
     } catch (error) {
         res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
@@ -234,9 +230,7 @@ const getOrdersOfUsers = async (req, res) => {
 const getLoggedInUserDetails = async (req, res) => {
     try {
         const userId = await extractUserId(req);
-
         const user = await User.findByPk(userId);
-
         const token = await Token.findOne({ userId: userId })
 
         const response = {

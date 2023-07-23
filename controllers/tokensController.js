@@ -32,9 +32,6 @@ const reNewAccessToken = async (req, res) => {
             }));
         }
 
-
-
-
     } catch (error) {
         res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
             status: StatusDescription.INTERNAL_SERVER_ERROR,

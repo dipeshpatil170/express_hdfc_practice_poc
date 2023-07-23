@@ -35,7 +35,9 @@ const ErrorPhrase = {
     ID_NOT_FOUND: 'The specified ID was not found in the URL.',
     DATA_NOT_FOUND: 'The data you are attempting to search for is not found.',
     INTERNAL_SERVER_ERROR: 'Internal Server Error: Something went wrong.',
-    PASSWORD_RESET_SUCCESS: 'Password has been reset successfully.'
+    PASSWORD_RESET_SUCCESS: 'Password has been reset successfully.',
+    USER_COULD_NOT_CREATED: 'User could not created.',
+    NO_ORDERS: 'User have not placed any orders yet.'
 }
 
 module.exports = {

@@ -9,13 +9,7 @@ module.exports.checkAuth = async (req, res, next) => {
     try {
 
         if (!token) {
-            return res.status(StatusCode.UNAUTHORIZED).send(
-                createErrorPayload({
-                    status: StatusDescription.UNAUTHORIZED,
-                    statusCode: StatusCode.UNAUTHORIZED,
-                    message: ErrorPhrase.TOKEN_NOT_PROVIDED,
-                })
-            );
+            throw Error(ErrorPhrase.TOKEN_NOT_PROVIDED);
         }
 
         const tokenRegex = /^Bearer (.+)$/i;
@@ -32,22 +26,14 @@ module.exports.checkAuth = async (req, res, next) => {
 
 
         if (!user) {
-            return res.status(StatusCode.NOT_FOUND).send(createErrorPayload({
-                status: StatusDescription.NOT_FOUND,
-                statusCode: StatusCode.NOT_FOUND,
-                message: ErrorPhrase.USER_NOT_FOUND
-            }));
+            throw Error(ErrorPhrase.USER_NOT_FOUND);
         } else {
             const token = await Token.findOne({ userId: decoded.userId });
-
-            if (seperatedtoken !== token.accessToken) {
-                return res.status(StatusCode.UNAUTHORIZED).send(createErrorPayload({
-                    status: StatusDescription.UNAUTHORIZED,
-                    statusCode: StatusCode.UNAUTHORIZED,
-                    message: ErrorPhrase.INVALID_TOKEN
-                }));
-            } else {
+            
+            if (seperatedtoken === token.accessToken || seperatedtoken === token.refreshToken) {
                 next();
+            } else {
+                throw Error(ErrorPhrase.INVALID_TOKEN);
             }
         }
     } catch (error) {

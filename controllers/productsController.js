@@ -1,14 +1,10 @@
 const { StatusCode, StatusDescription, ErrorPhrase } = require("../utils/errorPhrase");
-const { createErrorPayload, errorHandler, generateTokens } = require("../utils/utils");
-const jwt = require('jsonwebtoken');
-const bcrypt = require("bcryptjs/dist/bcrypt");
+const { createErrorPayload, errorHandler, notFound } = require("../utils/utils");
 const { Product } = require("../models");
 const { Op } = require('sequelize');
 
 
-
 const createProduct = async (req, res) => {
-
     try {
         const { name, price, description } = req.body;
 
@@ -25,11 +21,19 @@ const createProduct = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
-            status: StatusDescription.INTERNAL_SERVER_ERROR,
-            statusCode: StatusCode.INTERNAL_SERVER_ERROR,
-            message: errorHandler(error),
-        }));
+        if (error.name && error.name === 'SequelizeUniqueConstraintError') {
+            res.status(StatusCode.CONFLICT).send(createErrorPayload({
+                status: StatusDescription.CONFLICT,
+                statusCode: StatusCode.CONFLICT,
+                message: errorHandler(error),
+            }));
+        } else {
+            res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
+                status: StatusDescription.INTERNAL_SERVER_ERROR,
+                statusCode: StatusCode.INTERNAL_SERVER_ERROR,
+                message: errorHandler(error),
+            }));
+        }
     }
 
 }
@@ -90,22 +94,12 @@ const singleProduct = async (req, res) => {
                     data: product,
                 });
             } else {
-                res.status(StatusCode.NOT_FOUND).send({
-                    status: StatusDescription.NOT_FOUND,
-                    statusCode: StatusCode.NOT_FOUND,
-                    message: 'User data not found.',
-                });
+                throw Error(notFound('Product', id))
             }
 
         } else {
-            res.status(StatusCode.NOT_FOUND).send(createErrorPayload({
-                status: StatusDescription.NOT_FOUND,
-                statusCode: StatusCode.NOT_FOUND,
-                message: ErrorPhrase.ID_NOT_FOUND,
-            }));
+            throw Error(ErrorPhrase.ID_NOT_FOUND);
         }
-
-
 
     } catch (error) {
         res.status(StatusCode.INTERNAL_SERVER_ERROR).send(createErrorPayload({
