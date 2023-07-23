@@ -21,9 +21,9 @@ const createOrder = async (req, res) => {
                 productId: productId,
             });
 
-            res.status(StatusCode.OK).send({
+            res.status(StatusCode.CREATED).send({
                 status: StatusDescription.SUCCESS,
-                statusCode: StatusCode.OK,
+                statusCode: StatusCode.CREATED,
                 data: order,
             });
         }

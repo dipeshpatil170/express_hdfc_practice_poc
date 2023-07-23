@@ -43,9 +43,9 @@ const registerUser = async (req, res) => {
             refreshTokenExpiry: refreshTokenExpiry
         }
 
-        res.status(StatusCode.OK).send({
+        res.status(StatusCode.CREATED).send({
             status: StatusDescription.SUCCESS,
-            statusCode: StatusCode.OK,
+            statusCode: StatusCode.CREATED,
             data: createUserResponse,
         });
 
